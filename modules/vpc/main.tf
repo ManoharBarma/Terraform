@@ -1,4 +1,3 @@
-
 # --- Core Networking Resources ---
 
 resource "aws_vpc" "main" {
@@ -39,22 +38,22 @@ resource "aws_subnet" "private" {
   }
 }
 
-# --- NAT Gateway for Private Subnet Internet Access ---
+# --- NAT Gateway (Highly Available) ---
+# Creates an Elastic IP and a NAT Gateway in each Availability Zone.
 
 resource "aws_eip" "nat" {
-  domain = "vpc"
-  # Ensures IGW is created before the EIP
+  for_each   = aws_subnet.public # Create one EIP per public subnet/AZ
+  domain     = "vpc"
   depends_on = [aws_internet_gateway.main]
 }
 
 resource "aws_nat_gateway" "main" {
-  # Place the NAT Gateway in the first public subnet
-  subnet_id     = values(aws_subnet.public)[0].id
-  allocation_id = aws_eip.nat.id
+  for_each      = aws_subnet.public # Create one NAT Gateway per public subnet/AZ
+  subnet_id     = each.value.id
+  allocation_id = aws_eip.nat[each.key].id
   tags = {
-    Name = "${var.vpc_name}-nat-gateway"
+    Name = "${var.vpc_name}-nat-gateway-${each.key}"
   }
-  depends_on = [aws_internet_gateway.main]
 }
 
 # --- Routing for Public Subnets ---
@@ -78,23 +77,28 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# --- Routing for Private Subnets ---
+# --- Routing for Private Subnets (Highly Available) ---
+# Creates a dedicated route table for each AZ, pointing to the NAT Gateway in that same AZ.
 
 resource "aws_route_table" "private" {
-  vpc_id = aws_vpc.main.id
+  for_each = aws_subnet.private # Create one private route table per AZ
+  vpc_id   = aws_vpc.main.id
   tags = {
-    Name = "${var.vpc_name}-private-rt"
+    Name = "${var.vpc_name}-private-rt-${each.key}"
   }
 }
 
 resource "aws_route" "private_nat_access" {
-  route_table_id         = aws_route_table.private.id
+  for_each               = aws_route_table.private
+  route_table_id         = each.value.id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.main.id
+  # Route to the NAT Gateway in the same AZ
+  nat_gateway_id         = aws_nat_gateway.main[each.key].id
 }
 
 resource "aws_route_table_association" "private" {
   for_each       = aws_subnet.private
   subnet_id      = each.value.id
-  route_table_id = aws_route_table.private.id
+  # Associate with the route table for the same AZ
+  route_table_id = aws_route_table.private[each.key].id
 }
