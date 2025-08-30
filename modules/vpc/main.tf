@@ -42,13 +42,12 @@ resource "aws_subnet" "private" {
 # Creates an Elastic IP and a NAT Gateway in each Availability Zone.
 
 resource "aws_eip" "nat" {
-  for_each   = aws_subnet.public # Create one EIP per public subnet/AZ
-  domain     = "vpc"
+  for_each   = aws_subnet.public
   depends_on = [aws_internet_gateway.main]
 }
 
 resource "aws_nat_gateway" "main" {
-  for_each      = aws_subnet.public # Create one NAT Gateway per public subnet/AZ
+  for_each      = aws_subnet.public
   subnet_id     = each.value.id
   allocation_id = aws_eip.nat[each.key].id
   tags = {
@@ -92,13 +91,11 @@ resource "aws_route" "private_nat_access" {
   for_each               = aws_route_table.private
   route_table_id         = each.value.id
   destination_cidr_block = "0.0.0.0/0"
-  # Route to the NAT Gateway in the same AZ
   nat_gateway_id         = aws_nat_gateway.main[each.key].id
 }
 
 resource "aws_route_table_association" "private" {
   for_each       = aws_subnet.private
   subnet_id      = each.value.id
-  # Associate with the route table for the same AZ
   route_table_id = aws_route_table.private[each.key].id
 }

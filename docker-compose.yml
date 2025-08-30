@@ -16,7 +16,3 @@ services:
       # This mounts a local directory to persist LocalStack's state.
       - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-      - 1.1.1.1

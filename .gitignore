@@ -1,0 +1,4 @@
+app/west/.terra*
+/volume
+*.tfstate
+*terraform*

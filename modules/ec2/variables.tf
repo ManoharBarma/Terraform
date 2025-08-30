@@ -48,3 +48,8 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+variable "iam_instance_profile_name" {
+  description = "The name of the IAM instance profile to associate with the instance."
+  type        = string
+  default     = null
+}

@@ -8,8 +8,7 @@ terraform {
 }
 
 provider "aws" {
-  # Dummy values that are required by the provider
-
+  region = "us-west-1"
 }
 
 terraform {

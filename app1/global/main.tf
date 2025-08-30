@@ -1,6 +1,6 @@
 # Define the two regions you are deploying to
 variable "primary_region" {
-  default = "us-west-2"
+  default = "us-west-1"
 }
 variable "secondary_region" {
   default = "us-central-1"
