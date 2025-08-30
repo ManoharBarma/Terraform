@@ -32,11 +32,12 @@ resource "aws_iam_policy" "this" {
       {
         Action   = "secretsmanager:GetSecretValue"
         Effect   = "Allow"
-        Resource = "*" # For a production system, you would lock this down to a specific secret ARN
+        Resource = var.allowed_secret_arn 
       }
     ]
   })
 }
+
 
 # Attaches the policy to the role
 resource "aws_iam_role_policy_attachment" "this" {

@@ -50,6 +50,7 @@ module "rds_sg" {
 module "ec2_iam_role" {
   source    = "../../modules/iam"
   role_name = "${var.app_name}-ec2-role"
+  allowed_secret_arn = module.db_secrets.secret_arn
   tags = {
     Description = "IAM Role for application EC2 instances"
   }
@@ -79,8 +80,8 @@ locals {
 }
 
 module "servers" {
-  for_each = local.instances
-
+  for_each                  = local.instances
+  create_eip                = false
   source                    = "../../modules/ec2"
   instance_name             = "${var.app_name}-${each.key}"
   key_name                  = "my-aws-key"

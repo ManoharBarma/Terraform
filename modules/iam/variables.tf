@@ -8,3 +8,8 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "allowed_secret_arn" {
+  description = "The ARN of the specific secret the role is allowed to read."
+  type        = string
+}
