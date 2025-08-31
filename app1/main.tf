@@ -2,12 +2,12 @@
 variable "app_name" {
   description = "The name of the application."
   type        = string
-  default     = "app1-west"
+  default     = "app1"
 }
 
 # 1. NETWORKING - Create the VPC and Subnets
 module "my_vpc" {
-  source = "../../modules/vpc"
+  source = "../modules/vpc"
 
   vpc_name        = "${var.app_name}-vpc"
   vpc_cidr        = "10.10.0.0/16"
@@ -17,7 +17,7 @@ module "my_vpc" {
 
 # 2. SECURITY - Create separate Security Groups for each layer
 module "alb_sg" {
-  source = "../../modules/sg"
+  source = "../modules/sg"
 
   sg_name = "${var.app_name}-alb-sg"
   vpc_id  = module.my_vpc.vpc_id
@@ -29,7 +29,7 @@ module "alb_sg" {
 }
 
 module "ec2_sg" {
-  source = "../../modules/sg"
+  source = "../modules/sg"
 
   sg_name       = "${var.app_name}-ec2-sg"
   vpc_id        = module.my_vpc.vpc_id
@@ -38,7 +38,7 @@ module "ec2_sg" {
 }
 
 module "rds_sg" {
-  source = "../../modules/sg"
+  source = "../modules/sg"
 
   sg_name       = "${var.app_name}-rds-sg"
   vpc_id        = module.my_vpc.vpc_id
@@ -48,7 +48,7 @@ module "rds_sg" {
 
 # 3. IDENTITY - Create IAM Role for EC2 instances to access Secrets Manager
 module "ec2_iam_role" {
-  source    = "../../modules/iam"
+  source    = "../modules/iam"
   role_name = "${var.app_name}-ec2-role"
   allowed_secret_arn = module.db_secrets.secret_arn
   tags = {
@@ -62,7 +62,7 @@ resource "random_id" "suffix" {
 }
 
 module "db_secrets" {
-  source      = "../../modules/secrets"
+  source      = "../modules/secrets"
   secret_name = "${var.app_name}/database/password-${random_id.suffix.hex}"
   tags        = { Description = "Password for the main production ${var.app_name}" }
 }
@@ -82,7 +82,7 @@ locals {
 module "servers" {
   for_each                  = local.instances
   create_eip                = false
-  source                    = "../../modules/ec2"
+  source                    = "../modules/ec2"
   instance_name             = "${var.app_name}-${each.key}"
   key_name                  = "my-aws-key"
   instance_type             = "t3.micro"
@@ -103,7 +103,7 @@ module "servers" {
 
 # 6. LOAD BALANCING
 module "alb" {
-  source               = "../../modules/alb"
+  source               = "../modules/alb"
   name                 = "${var.app_name}-app-alb"
   vpc_id               = module.my_vpc.vpc_id
   subnet_ids           = values(module.my_vpc.public_subnet_ids)
@@ -114,7 +114,7 @@ module "alb" {
 
 # 7. DATABASE
 module "db" {
-  source                 = "../../modules/rds"
+  source                 = "../modules/rds"
   db_name                = "${replace(var.app_name, "-", "")}db"
   engine                 = "mysql"
   engine_version         = "8.0"
@@ -145,4 +145,10 @@ output "database_password_secret_arn" {
 output "application_server_private_ips" {
   description = "A map of the private IP addresses for the application EC2 instances."
   value       = { for k, v in module.servers : k => v.private_ip }
+}
+
+output "dbpassword" {
+  description = "The database password (sensitive output)."
+  value       = module.db_secrets.password_value
+  sensitive   = true  
 }

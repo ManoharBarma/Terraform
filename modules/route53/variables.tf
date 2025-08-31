@@ -11,11 +11,6 @@ variable "tags" {
 
 variable "records" {
   description = "A list of DNS records to create in the hosted zone."
-  type        = list(object({
-    name   = string
-    type   = string
-    ttl    = optional(number, 300)
-    values = list(string)
-  }))
+  type        = list(any)
   default     = []
 }
