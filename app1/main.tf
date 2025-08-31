@@ -64,7 +64,7 @@ resource "random_id" "suffix" {
 module "db_secrets" {
   source      = "../modules/secrets"
   secret_name = "${var.app_name}/database/password-${random_id.suffix.hex}"
-  tags        = { Description = "Password for the main production ${var.app_name}" }
+  tags        = { Description = "DB Password for the ${var.app_name}" }
 }
 
 # 5. COMPUTE - Create two EC2 instances and attach the IAM Role
@@ -115,7 +115,7 @@ module "alb" {
 # 7. DATABASE
 module "db" {
   source                 = "../modules/rds"
-  db_name                = "${replace(var.app_name, "-", "")}db"
+  db_name                = "${var.app_name}db"
   engine                 = "mysql"
   engine_version         = "8.0"
   instance_class         = "db.t3.micro"
