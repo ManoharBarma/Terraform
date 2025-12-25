@@ -1,15 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-ROOT_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+# Simple convenience script to init/plan/apply the green environment
+ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
 APP_DIR="$ROOT_DIR/app1"
+BACKEND_CONFIG="$APP_DIR/backend-green.conf"
+TFVARS="$APP_DIR/green.tfvars"
 
-# Get backend-config and tfvars (plain machine-readable output)
-read -r BACKEND_CONFIG < <($SCRIPT_DIR/select-env.sh green --plain | sed -n '1p')
-read -r TFVARS < <($SCRIPT_DIR/select-env.sh green --plain | sed -n '2p')
+echo "Applying green environment using backend: $BACKEND_CONFIG and tfvars: $TFVARS"
 
-cd "$APP_DIR"
-terraform init -backend-config="$BACKEND_CONFIG" -reconfigure
-terraform plan -var-file="$TFVARS"
-terraform apply -var-file="$TFVARS"
+if [ ! -f "$BACKEND_CONFIG" ]; then
+	echo "Backend config not found: $BACKEND_CONFIG" >&2
+	exit 2
+fi
+
+if [ ! -f "$TFVARS" ]; then
+	echo "Variables file not found: $TFVARS" >&2
+	echo "Create $TFVARS or copy the sample file." >&2
+	exit 2
+fi
+
+terraform -chdir="$APP_DIR" init -backend-config=backend-green.conf -reconfigure
+terraform -chdir="$APP_DIR" plan -var-file=green.tfvars
+#terraform -chdir="$APP_DIR" apply -var-file=green.tfvars

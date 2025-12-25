@@ -43,8 +43,8 @@ module "rds_sg" {
 
 # 3. IDENTITY - Create IAM Role for EC2 instances to access Secrets Manager
 module "ec2_iam_role" {
-  source    = "../modules/iam"
-  role_name = "${var.app_name}-ec2-role"
+  source             = "../modules/iam"
+  role_name          = "${var.app_name}-ec2-role"
   allowed_secret_arn = module.db_secrets.secret_arn
   tags = {
     Description = "IAM Role for application EC2 instances"
@@ -80,7 +80,7 @@ module "servers" {
   source                    = "../modules/ec2"
   instance_name             = "${var.app_name}-${each.key}"
   key_name                  = "my-aws-key"
-  instance_type             = "t3.micro"
+  instance_type             = "t2.micro"
   subnet_id                 = module.my_vpc.private_subnet_ids[each.value.subnet_key]
   ami_id                    = var.ami_id
   vpc_security_group_ids    = [module.ec2_sg.security_group_id]
@@ -109,13 +109,13 @@ module "alb" {
 
 # 7. DATABASE
 module "db" {
-  source                 = "../modules/rds"
-  db_name                = "${var.app_name}db"
-  engine                 = "mysql"
-  engine_version         = "8.0"
-  instance_class         = "db.t3.micro"
-  allocated_storage      = 20
-  username               = "admin"
+  source            = "../modules/rds"
+  db_name           = "${var.app_name}db"
+  engine            = "mysql"
+  engine_version    = "8.0"
+  instance_class    = "db.t4g.micro"
+  allocated_storage = 20
+  username          = "admin"
   # For this test project we'll read the secret value using a data source.
   # In production prefer letting the application retrieve secrets at runtime.
   password               = local.db_password
