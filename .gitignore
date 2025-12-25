@@ -2,3 +2,13 @@ app/west/.terra*
 /volume
 *.tfstate
 *terraform*
+
+# Ignore plan artifacts and terraform state/backups
+*.plan
+terraform.tfstate
+terraform.tfstate.backup
+.terraform
+.terraform.lock.hcl
+*.plan
+terraform.tfstate
+terraform.tfstate.backup
