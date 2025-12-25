@@ -21,23 +21,25 @@ resource "aws_iam_role" "this" {
 }
 
 # Defines the specific permissions for the role
+data "aws_iam_policy_document" "secrets_access" {
+  statement {
+    sid    = "AllowSecretsRead"
+    effect = "Allow"
+
+    actions = [
+      "secretsmanager:GetSecretValue",
+      "secretsmanager:DescribeSecret"
+    ]
+
+    resources = [var.allowed_secret_arn]
+  }
+}
+
 resource "aws_iam_policy" "this" {
   name        = "${var.role_name}-policy"
   description = "Allows reading secrets from Secrets Manager"
-
-  # This policy grants permission to get the secret's value
-  policy = jsonencode({
-    Version   = "2012-10-17"
-    Statement = [
-      {
-        Action   = "secretsmanager:GetSecretValue"
-        Effect   = "Allow"
-        Resource = var.allowed_secret_arn 
-      }
-    ]
-  })
+  policy      = data.aws_iam_policy_document.secrets_access.json
 }
-
 
 # Attaches the policy to the role
 resource "aws_iam_role_policy_attachment" "this" {

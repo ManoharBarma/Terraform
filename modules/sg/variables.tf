@@ -32,3 +32,4 @@ variable "egress_rules" {
   type        = list(any)
   default     = []
 }
+

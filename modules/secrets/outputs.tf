@@ -1,10 +1,10 @@
-output "password_value" {
-  description = "The generated password."
-  value       = random_password.this.result
-  sensitive   = true # Hides the password from Terraform logs
-}
-
 output "secret_arn" {
-  description = "The ARN of the secret in Secrets Manager."
+  description = "The ARN of the created Secrets Manager secret"
   value       = aws_secretsmanager_secret.this.arn
 }
+
+output "secret_id" {
+  description = "The ID of the created secret"
+  value       = aws_secretsmanager_secret.this.id
+}
+/* Note: raw secret values are intentionally NOT exported by this module. Read secrets at runtime by granting IAM permissions and using the Secrets Manager API. */

@@ -1,9 +1,4 @@
-# This variable defines the application name used for tagging resources.
-variable "app_name" {
-  description = "The name of the application."
-  type        = string
-  default     = "app1"
-}
+/* Root variables are defined in app1/variables.tf - avoid redeclaring them here. */
 
 # 1. NETWORKING - Create the VPC and Subnets
 module "my_vpc" {
@@ -11,8 +6,8 @@ module "my_vpc" {
 
   vpc_name        = "${var.app_name}-vpc"
   vpc_cidr        = "10.10.0.0/16"
-  public_subnets  = { "us-west-1a" = "10.10.1.0/24", "us-west-1c" = "10.10.2.0/24" }
-  private_subnets = { "us-west-1a" = "10.10.101.0/24", "us-west-1c" = "10.10.102.0/24" }
+  public_subnets  = { "${var.aws_region}a" = "10.10.1.0/24", "${var.aws_region}c" = "10.10.2.0/24" }
+  private_subnets = { "${var.aws_region}a" = "10.10.101.0/24", "${var.aws_region}c" = "10.10.102.0/24" }
 }
 
 # 2. SECURITY - Create separate Security Groups for each layer
@@ -87,7 +82,7 @@ module "servers" {
   key_name                  = "my-aws-key"
   instance_type             = "t3.micro"
   subnet_id                 = module.my_vpc.private_subnet_ids[each.value.subnet_key]
-  ami_id                    = "ami-00271c85bf8a52b84"
+  ami_id                    = var.ami_id
   vpc_security_group_ids    = [module.ec2_sg.security_group_id]
   iam_instance_profile_name = module.ec2_iam_role.instance_profile_name
   user_data = base64encode(<<-EOF
@@ -121,9 +116,20 @@ module "db" {
   instance_class         = "db.t3.micro"
   allocated_storage      = 20
   username               = "admin"
-  password               = module.db_secrets.password_value
+  # For this test project we'll read the secret value using a data source.
+  # In production prefer letting the application retrieve secrets at runtime.
+  password               = local.db_password
   subnet_ids             = values(module.my_vpc.private_subnet_ids)
   vpc_security_group_ids = [module.rds_sg.security_group_id]
+}
+
+data "aws_secretsmanager_secret_version" "db_pw" {
+  secret_id = module.db_secrets.secret_id
+}
+
+locals {
+  # Secret string may be plain text or JSON; here we assume plain text password.
+  db_password = try(data.aws_secretsmanager_secret_version.db_pw.secret_string, "")
 }
 
 # 8. OUTPUTS - Key information about the deployed infrastructure
@@ -147,8 +153,4 @@ output "application_server_private_ips" {
   value       = { for k, v in module.servers : k => v.private_ip }
 }
 
-output "dbpassword" {
-  description = "The database password (sensitive output)."
-  value       = module.db_secrets.password_value
-  sensitive   = true  
-}
+/* Removed output of raw database password for safety. The secret ARN is available above; grant roles permission and have the instances fetch the secret at runtime. */

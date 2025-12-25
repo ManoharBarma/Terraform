@@ -10,7 +10,9 @@ resource "aws_security_group" "this" {
 }
 
 resource "aws_security_group_rule" "ingress" {
-  for_each = { for rule in var.ingress_rules : rule.description => rule }
+  for_each = {
+    for idx, rule in var.ingress_rules : format("ingress-%02d-%s-%d", idx, replace(coalesce(try(rule.description, ""), ""), " ", "-"), coalesce(try(rule.from_port, 0), 0)) => rule
+  }
 
   type              = "ingress"
   security_group_id = aws_security_group.this.id
@@ -18,15 +20,16 @@ resource "aws_security_group_rule" "ingress" {
   from_port   = each.value.from_port
   to_port     = each.value.to_port
   protocol    = each.value.protocol
-  description = each.value.description
+  description = try(each.value.description, null)
 
-  # This now handles both rule types safely by providing a 'null' default.
-  cidr_blocks              = lookup(each.value, "cidr_blocks", null)
-  source_security_group_id = lookup(each.value, "source_security_group_id", null)
+  cidr_blocks              = try(each.value.cidr_blocks, null)
+  source_security_group_id = try(each.value.source_security_group_id, null)
 }
 
 resource "aws_security_group_rule" "egress" {
-  for_each = { for rule in var.egress_rules : rule.description => rule }
+  for_each = {
+    for idx, rule in var.egress_rules : format("egress-%02d-%s-%d", idx, replace(coalesce(try(rule.description, ""), ""), " ", "-"), coalesce(try(rule.from_port, 0), 0)) => rule
+  }
 
   type              = "egress"
   security_group_id = aws_security_group.this.id
@@ -34,9 +37,8 @@ resource "aws_security_group_rule" "egress" {
   from_port   = each.value.from_port
   to_port     = each.value.to_port
   protocol    = each.value.protocol
-  description = each.value.description
+  description = try(each.value.description, null)
 
-  # This now handles both rule types safely by providing a 'null' default.
-  cidr_blocks              = lookup(each.value, "cidr_blocks", null)
-  source_security_group_id = lookup(each.value, "source_security_group_id", null)
+  cidr_blocks              = try(each.value.cidr_blocks, null)
+  source_security_group_id = try(each.value.source_security_group_id, null)
 }

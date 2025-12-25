@@ -72,13 +72,13 @@ variable "backup_retention_period" {
 variable "skip_final_snapshot" {
   description = "Determines whether a final DB snapshot is created before the DB instance is deleted."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "deletion_protection" {
   description = "If the DB instance should have deletion protection enabled."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "tags" {
