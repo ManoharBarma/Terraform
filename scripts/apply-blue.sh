@@ -22,4 +22,5 @@ fi
 
 terraform -chdir="$APP_DIR" init -backend-config=backend-blue.conf -reconfigure
 terraform -chdir="$APP_DIR" plan -var-file=blue.tfvars
-terraform -chdir="$APP_DIR" apply -var-file=blue.tfvars
+terraform -chdir="$APP_DIR" apply -var-file=blue.tfvars --auto-approve
+#terraform -chdir="$APP_DIR" destroy -var-file=blue.tfvars --auto-approve

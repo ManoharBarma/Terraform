@@ -51,7 +51,7 @@ module "ec2_iam_role" {
   }
 }
 
-# 4. SECRETS MANAGEMENT - Create a secure, random password for the database
+# 5. SECRETS MANAGEMENT - Create a secure, random password for the database
 resource "random_id" "suffix" {
   byte_length = 4
 }
@@ -62,7 +62,12 @@ module "db_secrets" {
   tags        = { Description = "DB Password for the ${var.app_name}" }
 }
 
-# 5. COMPUTE - Create two EC2 instances and attach the IAM Role
+locals {
+  # Prefer the immediate module output if available to avoid timing/race conditions
+  db_password = module.db_secrets.secret_string
+}
+
+# 6. COMPUTE - Create two EC2 instances and attach the IAM Role
 locals {
   instances = {
     "server-1-ubuntu" = {
@@ -80,7 +85,7 @@ module "servers" {
   source                    = "../modules/ec2"
   instance_name             = "${var.app_name}-${each.key}"
   key_name                  = "my-aws-key"
-  instance_type             = "t2.micro"
+  instance_type             = "t3.micro"
   subnet_id                 = module.my_vpc.private_subnet_ids[each.value.subnet_key]
   ami_id                    = var.ami_id
   vpc_security_group_ids    = [module.ec2_sg.security_group_id]
@@ -109,27 +114,21 @@ module "alb" {
 
 # 7. DATABASE
 module "db" {
-  source            = "../modules/rds"
-  db_name           = "${var.app_name}db"
-  engine            = "mysql"
-  engine_version    = "8.0"
-  instance_class    = "db.t4g.micro"
-  allocated_storage = 20
-  username          = "admin"
+  source                  = "../modules/rds"
+  db_name                 = "${replace(var.app_name, "-", "")}db"
+  engine                  = "mysql"
+  engine_version          = "8.0"
+  instance_class          = "db.t4g.micro"
+  allocated_storage       = 20
+  username                = "admin"
   # For this test project we'll read the secret value using a data source.
   # In production prefer letting the application retrieve secrets at runtime.
-  password               = local.db_password
-  subnet_ids             = values(module.my_vpc.private_subnet_ids)
-  vpc_security_group_ids = [module.rds_sg.security_group_id]
-}
-
-data "aws_secretsmanager_secret_version" "db_pw" {
-  secret_id = module.db_secrets.secret_id
-}
-
-locals {
-  # Secret string may be plain text or JSON; here we assume plain text password.
-  db_password = try(data.aws_secretsmanager_secret_version.db_pw.secret_string, "")
+  password                 = local.db_password
+  subnet_ids               = values(module.my_vpc.private_subnet_ids)
+  vpc_security_group_ids   = [module.rds_sg.security_group_id]
+  backup_retention_period  = var.backup_retention_period
+  skip_final_snapshot      = true
+  deletion_protection      = false
 }
 
 # 8. OUTPUTS - Key information about the deployed infrastructure

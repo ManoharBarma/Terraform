@@ -39,3 +39,9 @@ variable "create_eip" {
   type        = bool
   default     = false
 }
+
+variable "backup_retention_period" {
+  description = "The days to retain backups for the RDS instance."
+  type        = number
+  default     = 0
+}
