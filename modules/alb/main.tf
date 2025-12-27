@@ -14,7 +14,9 @@ resource "aws_lb" "this" {
 }
 
 resource "aws_lb_target_group" "this" {
-  name     = "${var.name}-tg"
+  count = var.create_tg ? 1 : 0
+
+  name     = "${var.name}-tg-${terraform.workspace}"
   port     = var.target_port
   protocol = var.target_protocol
   vpc_id   = var.vpc_id
@@ -30,13 +32,14 @@ resource "aws_lb_target_group" "this" {
   }
 
   tags = {
-    Name = "${var.name}-tg"
+    Name = "${var.name}-tg-${terraform.workspace}"
+    Environment = terraform.workspace
   }
 }
 
 resource "aws_lb_listener" "http" {
-  # Create this listener only if http_listener is enabled
-  count = var.create_http_listener ? 1 : 0
+  # Create this listener only if http_listener is enabled and tg is created
+  count = var.create_http_listener && var.create_tg ? 1 : 0
 
   load_balancer_arn = aws_lb.this.arn
   port              = "80"
@@ -44,15 +47,15 @@ resource "aws_lb_listener" "http" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.this.arn
+    target_group_arn = aws_lb_target_group.this[0].arn
   }
 }
 
 resource "aws_lb_target_group_attachment" "this" {
   # Create one attachment for each instance ID in the list
-  for_each = var.target_instances_map
+  for_each = var.create_tg ? var.target_instances_map : {}
 
-  target_group_arn = aws_lb_target_group.this.arn
+  target_group_arn = aws_lb_target_group.this[0].arn
   target_id        = each.value
   port             = var.target_port
 }

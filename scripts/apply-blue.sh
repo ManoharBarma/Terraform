@@ -20,7 +20,9 @@ if [ ! -f "$TFVARS" ]; then
   exit 2
 fi
 
-terraform -chdir="$APP_DIR" init -backend-config=backend-blue.conf -reconfigure
-terraform -chdir="$APP_DIR" plan -var-file=blue.tfvars
-terraform -chdir="$APP_DIR" apply -var-file=blue.tfvars --auto-approve
+cd "$APP_DIR"
+terraform init -backend-config="backend-blue.conf" -reconfigure
+terraform workspace select blue || terraform workspace new blue
+terraform plan -var-file="blue.tfvars"
+terraform apply -var-file="blue.tfvars" --auto-approve
 #terraform -chdir="$APP_DIR" destroy -var-file=blue.tfvars --auto-approve

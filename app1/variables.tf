@@ -45,3 +45,9 @@ variable "backup_retention_period" {
   type        = number
   default     = 0
 }
+
+variable "active_environment" {
+  description = "The active environment for traffic routing (blue or green)."
+  type        = string
+  default     = "blue"
+}

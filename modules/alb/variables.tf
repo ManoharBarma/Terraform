@@ -53,6 +53,12 @@ variable "create_http_listener" {
   default     = true
 }
 
+variable "create_tg" {
+  description = "Set to true to create target group and listener."
+  type        = bool
+  default     = true
+}
+
 variable "enable_deletion_protection" {
   description = "If true, deletion of the load balancer will be disabled."
   type        = bool

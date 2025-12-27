@@ -21,8 +21,11 @@ variable "state_buckets" {
   type = map(object({
     name = string
   }))
-  default = {
-    blue  = { name = "app1-blue-terraform-state-bucket" }
-    green = { name = "app1-green-terraform-state-bucket" }
-  }
+  default = {}
+}
+
+variable "apps" {
+  description = "List of application names to create state buckets for (shared, blue, green per app)"
+  type        = list(string)
+  default     = ["app1"]
 }

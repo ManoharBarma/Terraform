@@ -9,10 +9,22 @@ locals {
   # legacy fallback name when bucket_name is provided but state_buckets is empty
   legacy_bucket_name = var.bucket_name != "" ? var.bucket_name : "tf-state-${data.aws_caller_identity.current.account_id}-${local.repo_hash}"
 
-  # effective map of buckets: use provided map or fall back to legacy 'blue'
-  state_buckets_effective = length(var.state_buckets) > 0 ? var.state_buckets : {
-    blue = { name = local.legacy_bucket_name }
-  }
+  # Buckets for apps: shared, blue, green per app
+  app_buckets = merge(flatten([
+    for app in var.apps : {
+      "${app}-shared" = { name = "${app}-west-terraform-state-bucket" }
+      "${app}-blue"   = { name = "${app}-blue-terraform-state-bucket" }
+      "${app}-green"  = { name = "${app}-green-terraform-state-bucket" }
+    }
+  ])...)
+
+  # effective map of buckets: app buckets + provided state_buckets or legacy
+  state_buckets_effective = merge(
+    local.app_buckets,
+    length(var.state_buckets) > 0 ? var.state_buckets : {
+      blue = { name = local.legacy_bucket_name }
+    }
+  )
 }
 
 resource "aws_s3_bucket" "terraform_state" {
@@ -22,7 +34,7 @@ resource "aws_s3_bucket" "terraform_state" {
   tags   = var.tags
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -48,7 +60,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
   }
 }
 
-# Bucket versioning
+# Versioning for state buckets
 resource "aws_s3_bucket_versioning" "this" {
   for_each = aws_s3_bucket.terraform_state
   bucket   = each.value.id
